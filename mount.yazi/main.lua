@@ -1,5 +1,23 @@
 --- @since 25.2.26
 
+local M = {
+	keys = {
+		{ on = "q",       run = "quit" },
+
+		{ on = "k",       run = "up" },
+		{ on = "j",       run = "down" },
+		{ on = "l",       run = { "enter", "quit" } },
+
+		{ on = "<Up>",    run = "up" },
+		{ on = "<Down>",  run = "down" },
+		{ on = "<Right>", run = { "enter", "quit" } },
+
+		{ on = "m",       run = "mount" },
+		{ on = "u",       run = "unmount" },
+		{ on = "e",       run = "eject" },
+	},
+}
+
 ---@type fun(): nil
 local toggle_ui = ya.sync(function(self)
 	---@cast self PluginState
@@ -36,31 +54,13 @@ end)
 ---@type fun(cursor: number): nil
 local update_cursor = ya.sync(function(self, cursor)
 	---@cast self PluginState
-	if #self.entries == 0 then
-		self.cursor = 0
-	else
+	if #self.entries ~= 0 then
 		self.cursor = ya.clamp(0, self.cursor + cursor, #self.entries - 1)
+	else
+		self.cursor = 0
 	end
 	ya.render()
 end)
-
-local M = {
-	keys = {
-		{ on = "q", run = "quit" },
-
-		{ on = "k", run = "up" },
-		{ on = "j", run = "down" },
-		{ on = "l", run = { "enter", "quit" } },
-
-		{ on = "<Up>", run = "up" },
-		{ on = "<Down>", run = "down" },
-		{ on = "<Right>", run = { "enter", "quit" } },
-
-		{ on = "m", run = "mount" },
-		{ on = "u", run = "unmount" },
-		{ on = "e", run = "eject" },
-	},
-}
 
 function M:new(area)
 	self:layout(area)
@@ -69,12 +69,12 @@ end
 
 function M:layout(area)
 	local chunks = ui.Layout()
-		:constraints({
-			ui.Constraint.Percentage(10),
-			ui.Constraint.Percentage(80),
-			ui.Constraint.Percentage(10),
-		})
-		:split(area)
+			:constraints({
+				ui.Constraint.Percentage(10),
+				ui.Constraint.Percentage(80),
+				ui.Constraint.Percentage(10),
+			})
+			:split(area)
 
 	local chunks = ui.Layout()
 		:direction(ui.Layout.HORIZONTAL)
@@ -168,21 +168,21 @@ function M:redraw()
 	return {
 		ui.Clear(self._area),
 		ui.Border(ui.Border.ALL)
-			:area(self._area)
-			:type(ui.Border.ROUNDED)
-			:style(ui.Style():fg("blue"))
-			:title(ui.Line("Mount"):align(ui.Line.CENTER)),
+				:area(self._area)
+				:type(ui.Border.ROUNDED)
+				:style(ui.Style():fg("blue"))
+				:title(ui.Line("Mount"):align(ui.Line.CENTER)),
 		ui.Table(rows)
-			:area(self._area:pad(ui.Pad(1, 2, 1, 2)))
-			:header(ui.Row({ "Src", "Label", "Dist", "FSType" }):style(ui.Style():bold()))
-			:row(self.cursor)
-			:row_style(ui.Style():fg("blue"):underline())
-			:widths {
-				ui.Constraint.Length(20),
-				ui.Constraint.Length(20),
-				ui.Constraint.Percentage(70),
-				ui.Constraint.Length(10),
-			},
+				:area(self._area:pad(ui.Pad(1, 2, 1, 2)))
+				:header(ui.Row({ "Src", "Label", "Dist", "FSType" }):style(ui.Style():bold()))
+				:row(self.cursor)
+				:row_style(ui.Style():fg("blue"):underline())
+				:widths {
+					ui.Constraint.Length(20),
+					ui.Constraint.Length(20),
+					ui.Constraint.Percentage(70),
+					ui.Constraint.Length(10),
+				},
 	}
 end
 
@@ -217,10 +217,10 @@ end
 
 function M.split(src)
 	local pats = {
-		{ "^/dev/sd[a-z]", "%d+$" }, -- /dev/sda1
+		{ "^/dev/sd[a-z]",     "%d+$" }, -- /dev/sda1
 		{ "^/dev/nvme%d+n%d+", "p%d+$" }, -- /dev/nvme0n1p1
-		{ "^/dev/mmcblk%d+", "p%d+$" }, -- /dev/mmcblk0p1
-		{ "^/dev/disk%d+", ".+$" }, -- /dev/disk1s1
+		{ "^/dev/mmcblk%d+",   "p%d+$" }, -- /dev/mmcblk0p1
+		{ "^/dev/disk%d+",     ".+$" }, -- /dev/disk1s1
 	}
 	for _, p in ipairs(pats) do
 		local main = src:match(p[1])
