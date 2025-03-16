@@ -317,7 +317,7 @@ function M:layout(area)
 			})
 			:split(area)
 
-	local chunks = ui.Layout()
+	chunks = ui.Layout()
 			:direction(ui.Layout.HORIZONTAL)
 			:constraints({
 				ui.Constraint.Percentage(10),
