@@ -33,7 +33,7 @@ end)
 ---@type fun(): nil
 local MUI_refresh = ya.sync(function(self)
 	---@cast self PluginState
-	ya.mgr_emit("plugin", { self._id, "__refresh", })
+	ya.emit("plugin", { self._id, "__refresh", })
 end)
 
 ---@type fun(): nil
@@ -88,7 +88,7 @@ end
 ---@return table<string, string>
 local function sshfs_get_mounted_hosts_map()
 	local mounts = {}
-	local output, err = Command("mount"):args({ "-t", "fuse.sshfs", }):output()
+	local output, err = Command("mount"):arg({ "-t", "fuse.sshfs", }):output()
 	if err or not output.status.success then
 		M.fail("Failed to read system active mounts %s %s", err, output.stderr)
 	end
@@ -133,9 +133,9 @@ local function lsblk_enrich_description(tbl)
 		return tbl
 	end
 
-	local output, err = Command("lsblk"):args({
+	local output, err = Command("lsblk"):arg({
 		"-p", "-o", "name,fstype", "-J",
-	}):args(sources):output()
+	}):arg(sources):output()
 	if err then
 		ya.dbg("Failed to fetch filesystem types for unmounted partitions: " .. err)
 		return tbl
@@ -153,8 +153,8 @@ local FS = {
 	["fuse.sshfs"] = {
 		refresh = true,
 		mount = function(desc)
-			Command("mkdir"):args({ "-p", desc.target, }):status()
-			return Command("sshfs"):args({
+			Command("mkdir"):arg({ "-p", desc.target, }):status()
+			return Command("sshfs"):arg({
 				desc.src,
 				"-o", "reconnect,follow_symlinks",
 				desc.target,
@@ -162,7 +162,7 @@ local FS = {
 		end,
 
 		unmount = function(desc)
-			return Command("fusermount"):args({
+			return Command("fusermount"):arg({
 				"-u", desc.target,
 			}):output()
 		end,
@@ -246,16 +246,16 @@ local FS = {
 		operate = function(desc, action)
 			if not desc.sub then return command_mock() end
 			if ya.target_os() == "macos" then
-				return Command("diskutil"):args({ action, desc.src, }):output()
+				return Command("diskutil"):arg({ action, desc.src, }):output()
 			end
 
-			return Command("udisksctl"):args({ action, "-b", desc.src, }):output()
+			return Command("udisksctl"):arg({ action, "-b", desc.src, }):output()
 		end,
 
 		eject = function(desc)
 			if ya.target_os() ~= "linux" then return command_mock() end
-			Command("udisksctl"):args({ "unmount", "-b", desc.src, }):status()
-			return Command("udisksctl"):args({ "power-off", "-b", desc.src, }):output()
+			Command("udisksctl"):arg({ "unmount", "-b", desc.src, }):status()
+			return Command("udisksctl"):arg({ "power-off", "-b", desc.src, }):output()
 		end,
 
 		rows = function(entries)
@@ -289,11 +289,11 @@ end
 function M:redraw()
 	return {
 		ui.Clear(self._area),
-		ui.Border(ui.Border.ALL)
+		ui.Border(ui.Edge.ALL)
 				:area(self._area)
 				:type(ui.Border.ROUNDED)
 				:style(ui.Style():fg("blue"))
-				:title(ui.Line("Mount"):align(ui.Line.CENTER)),
+				:title(ui.Line("Mount"):align(ui.Align.CENTER)),
 		ui.Table(MUI_resolve_fsimpl().rows(self.entries))
 				:area(self._area:pad(ui.Pad(1, 2, 1, 2)))
 				:header(ui.Row({ "Src", "Label", "Dist", "FSType", }):style(ui.Style():bold()))
@@ -356,7 +356,7 @@ function M:loop()
 			elseif run == "enter" then
 				local active = MUI_get_selected_entry()
 				if active and active.dist then
-					ya.mgr_emit("cd", { active.dist, })
+					ya.emit("cd", { active.dist, })
 				end
 			else
 				tx2:send(run)
@@ -421,6 +421,6 @@ function M:entry(job)
 	M:loop()
 end
 
-function M.fail(s, ...) ya.notify { title = "Mount", content = string.format(s, ...), timeout = 10, level = "error", } end
+function M.fail(...) ya.notify { title = "Mount", content = string.format(...), timeout = 10, level = "error", } end
 
 return M
